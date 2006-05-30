@@ -1,130 +1,78 @@
 <?php
 
-# Class providing static functions to manipulate XML
+# XML wrapper class
 class xml
 {
-	# Wrapper to get the XML data
-	function xml2array ($xmlfile, $isString = false) {
-		
-		if ($isString) {
-			$xml = $xmlfile;
+	# Function to convert XML to an array
+	function xml2array ($xmlfile, $cacheXml = false, $documentToDataOrientatedXml = true, $xmlIsFile = true)
+	{
+		# If there is not a cached file, pre-process the XML
+		if (!$cacheXml || ($cacheXml && !file_exists ($cacheXml))) {
+			
+			# Get the XML
+			$xml = ($xmlIsFile ? file_get_contents ($xmlfile) : $xmlfile);
+			
+			# Remove the DOCTYPE
+			$xml = ereg_replace ('<!DOCTYPE ([^>]+)>', '', $xml);
+			
+			# Convert entities
+			$entities = array (
+				#!# Convert useful section in http://xml.ascc.net/resource/entities/ISO/ISOlat1.pen to an array
+				'&ucirc;' => '&#219;',
+				'&ograve;' => '&#210;',
+				'&agrave;' => '&#192;',
+				'&ouml;' => '&#214;',
+				'&eacute;' => '&#201;',
+				'&pound;' => '&#163;',
+				'&ugrave;' => '&#217;',
+				'&egrave;' => '&#200;',
+				'&acirc;' => '&#194;',
+				'&ecirc;' => '&#202;',
+				'&auml;' => '&#196;',
+			);
+			$xml = str_ireplace (array_keys ($entities), array_values ($entities), $xml);
+			
+			# Convert from document-orientated to data-orientated XML, if required
+			if ($documentToDataOrientatedXml) {
+				$xml = self::documentToDataOrientatedXml ($xml);
+			}
+			
+			# Cache the contents if required
+			if ($cacheXml) {
+				file_put_contents ($cacheXml, $xml);
+			}
+			
+		# Otherwise get the XML file
 		} else {
-			
-			# Check the file exists
-			if (!file_exists ($xmlfile)) {
-				echo "\n<p>The specified data file could not be found.</p>";
-				return false;
-			}
-			
-			# Get the contents
-			$xml = file_get_contents ($xmlfile);
+			$xml = file_get_contents ($cacheXml ? $cacheXml : $xmlfile);
 		}
 		
-		# Convert entities
-		$entities = array (
-			'&ucirc;' => '&#219;',
-			'&ograve;' => '&#219;',
-			'&agrave;' => '&#219;',
-			'&ouml;' => '&#214;',
-			'&eacute;' => '&#201;',
-			'&pound;' => '&#163;',
-			'&ugrave;' => '&#217;',
-			'&egrave;' => '&#200;',
-			'&acirc;' => '&#194;',
-			'&ecirc;' => '&#202;',
-			'&auml;' => '&#196;',
-		);
-		$xml = str_ireplace (array_keys ($entities), array_values ($entities), $xml);
+		# Convert the XML to an object
+		$xmlobject = simplexml_load_string ($xml);
 		
-		# Get the XML as an object
-		/*
-		$xml = str_replace ('file:///C:\MODES\OBJECT\OBJECT50.DTD', '/data/modes/object/object50.DTD', $xml);
-		$xmlobject = simplexml_load_string ($xml, NULL, LIBXML_DTDLOAD);
-		*/
-		// $xmlobject = simplexml_load_string ($xml);
-		$dom = new domDocument;
-		$dom->loadXML($xml);
-		$xmlobject = simplexml_import_dom ($dom);
-		
-		
-		# echo "<pre>"; var_dump ($xmlobject->asXml ()); echo "</pre>";
-		
-		/*
-		foreach ($xmlobject->OBJECT->asXml as $item) {
-			$foo = 'ADMIN-STATUS';
-			
-		}
-		*/
-		
-		/*
-		$foo = 'ADMIN-STATUS';
-		echo "<pre>"; var_dump ($xmlobject->OBJECT->$foo->asXml ()); echo "</pre>";
-		// echo "<pre>"; var_dump ($xmlobject->asXml ()); echo "</pre>";
-		*/
-		
-/*
-		
-		$xmlobject = simplexml_load_file ($xmlfile, NULL, LIBXML_NOWARNING);
-*/
-		
-		# Convert the object to a multi-dimensional array
+		# Convert the object to an array
 		$xml = self::simplexml2array ($xmlobject);
-		# echo "<pre>"; var_dump ($xml); echo "</pre>";
 		
-		/*
-		if ($result = $xmlobject->xpath ('/OBJECT-SET/OBJECT/RECORD-NUMBER')) {
-			while(list(, $node) = each($result)) {
-	   			$recordNumber = $node->asXML();
-				ereg ('<RECORD-NUMBER>([^<]*)</RECORD-NUMBER>', $recordNumber, $matches);
-				$records[] = $matches[0];
-			}
-		}
-		if ($result = $xmlobject->xpath ('/OBJECT-SET/OBJECT/ADMIN_STATUS')) {
-			while(list(, $node) = each($result)) {
-	   			$status = $node->asXML();
-				ereg ('<STATUS>([^<]*)</STATUS>', $recordNumber, $matches);
-				application::dumpData ($matches);
-			}
-		}
-		*/
 		# Return the XML
 		return $xml;
 	}
 	
 	
-	# DOM-based xml2array
-	function DOMxml2array ($xmlfile)
+	# Function to convert from document-orientated to data-orientated XML
+	function documentToDataOrientatedXml ($xml)
 	{
-		$xml = file_get_contents ($xmlfile);
-		# Convert entities
-		$entities = array (
-			'&ucirc;' => '&#219;',
-			'&ograve;' => '&#219;',
-			'&agrave;' => '&#219;',
-			'&ouml;' => '&#214;',
-			'&eacute;' => '&#201;',
-			'&pound;' => '&#163;',
-			'&ugrave;' => '&#217;',
-			'&egrave;' => '&#200;',
-			'&acirc;' => '&#194;',
-			'&ecirc;' => '&#202;',
-			'&auml;' => '&#196;',
-		);
-		$xml = str_ireplace (array_keys ($entities), array_values ($entities), $xml);
-		$dom = new domDocument;
-		$dom->loadXML($xml);
-//		echo "<pre>"; var_dump ($dom); echo "</pre>";
-		$xmlobject = simplexml_import_dom ($dom);
-		
-		# Convert the object to a multi-dimensional array
-		$data = self::DOMxml2array ($xmlobject);
-		
-		# Convert the object to a multi-dimensional array
-//		$data = array();
-//		dom_to_simple_array ($dom, $data);
+		# Perform a search & replace on the offending strings
+		#!# Note: this fails if xyz is one/two characters only: <CONTAINER>xyz<SUB-CONTAINER>Data</SUB-CONTAINER>
+		#!# This is also catching simple top-level cases like e.g. <NUMBER-OF-ITEMS>1</NUMBER-OF-ITEMS> for some reason
+		$search = "<([-a-zA-Z0-9]+)>([^<]{1})([^/]{1})([^<]+)" . "<([-a-zA-Z0-9]+)>";
+				// e.g. <CLASSIFIED-NAME>Labrador Inuit\n<SYSTEM>
+			   // "<([-a-zA-Z0-9]+)>([^<]{1})([^<]+)" . "<([-a-zA-Z0-9]+)>([^<]*)</\\4>" . "</\\1>"	// Note backreferences in search string	// e.g. <CLASSIFIED-NAME>Labrador Inuit\n<SYSTEM>Cultural affiliation - former</SYSTEM></CLASSIFIED-NAME>
+		$replacement = "<\\1><\\1>\\2\\3\\4</\\1>" . "<\\5>";
+					// "<\\1><\\1>\\2\\3</\\1>" . "<\\4>\\5</\\4>" . "</\\1>",
+		$xml = preg_replace ('|' . $search . '|ims', $replacement, $xml);	// preg_replace is much faster than ereg_replace and supports backreferences in the search string
 		
 		# Return the XML
-		return $data;
+		return $xml;
 	}
 	
 	
@@ -153,65 +101,93 @@ class xml
 	}
 	
 	
-	
-	
-	/*
-	# From http://uk.php.net/manual/en/function.dom-domdocument-load.php
-	function processXsd ($file)
+	# Function to chunk files into pieces into a database
+	function databaseChunking ($file, $authenticationFile, $database, $table, $xpath, $recordIdPath, $documentToDataOrientatedXml = true, $timeLimit = 300)
 	{
-		$XSDDOC = new DOMDocument();
-		$XSDDOC->preserveWhiteSpace = false;
-		$attributes = array();
-		if ($XSDDOC->load ($file)) {
-		   $xsdpath = new DOMXPath($XSDDOC);
-		   $attributeNodes = $xsdpath->query('//xs:simpleType[@name="attributeType"]')->item(0);
-		   foreach ($attributeNodes->childNodes as $attr) {
-		       $attributes[ $attr->getAttribute('value') ] = $attr->getAttribute('name');
-		   }
-		   unset($xsdpath);
+		# Set a larger time limit than the default
+		set_time_limit ($timeLimit);
+		
+		# Obtain the file
+		$xml = file_get_contents ($file);
+		
+		# Remove the DOCTYPE
+		// $xml = ereg_replace ('<!DOCTYPE ([^>]+)>', '', $xml);
+		
+		# Replace . characters in tag names to work around bug http://bugs.mysql.com/20795
+		#!# Remove this when fixed in MySQL
+		// $xml = ereg_replace ('<([^\.>]*)\.([^>]*)>', '<\1-\2>', $xml);
+		$xml = str_replace ('PART.SUMMARY>', 'PART-SUMMARY>', $xml);
+		
+		# Convert entities
+		$entities = array (
+			#!# Convert useful section in http://xml.ascc.net/resource/entities/ISO/ISOlat1.pen to an array
+			'&ucirc;' => '&#219;',
+			'&ograve;' => '&#210;',
+			'&agrave;' => '&#192;',
+			'&ouml;' => '&#214;',
+			'&eacute;' => '&#201;',
+			'&pound;' => '&#163;',
+			'&ugrave;' => '&#217;',
+			'&egrave;' => '&#200;',
+			'&acirc;' => '&#194;',
+			'&ecirc;' => '&#202;',
+			'&auml;' => '&#196;',
+		);
+		$xml = str_ireplace (array_keys ($entities), array_values ($entities), $xml);
+		
+		# Convert from document-orientated to data-orientated XML, if required
+		if ($documentToDataOrientatedXml) {
+			require_once ('xml.php');
+			$xml = self::documentToDataOrientatedXml ($xml);
 		}
 		
-		# Return the attributes
-		return $attributes;
+		# Cache the contents if required
+		// file_put_contents ('./cache.xml', $xml);
+		
+		# Start an array of data
+		$dataset = array ();
+		
+		# Chunk the XML
+		$xml = new SimpleXMLElement ($xml);
+		$records = $xml->xpath ($xpath);
+		foreach ($records as $record) {
+			
+			# Assign the record number
+			$id = (string) $record->$recordIdPath;
+			
+			# Get the record itself as XML
+			$data = $record->asXML();
+			
+			# Add the data to the array of records
+			$dataset[$id] = array ('id' => $id, 'data' => $data);
+		}
+		
+		# Get the authentication credentials
+		#!# This is failing
+		if (!is_readable ($authenticationFile)) {
+			echo "<p>The authentication file could not be read or does not exist.</p>";
+			return false;
+		}
+		include ($authenticationFile);
+		
+		# Connect to the database
+		require_once ('database.php');
+		if (!$databaseConnection = new database ($credentials['hostname'], $credentials['username'], $credentials['password'])) {
+			echo "<p>There was a problem connecting to the database.</p>";
+			return false;
+		}
+		
+		# Insert the data
+		foreach ($dataset as $key => $data) {
+			if (!$databaseConnection->insert ($database, $table, $data, 'data=VALUES(data)')) {
+				echo "<p>There was a problem inserting the data into the database.</p>";
+				return false;
+			}
+		}
+		
+		# Return success
+		return true;
 	}
-	*/
 }
-
-
-
-
-	# From http://uk.php.net/manual/en/ref.domxml.php#47418
-	function dom_to_simple_array($domnode, &$array) {
-	  require_once ('domxml-php4-to-php5/domxml-php4-to-php5.php');
-	  $array_ptr = &$array;
-	  $domnode = $domnode->firstChild;
-	  while (!is_null($domnode)) {
-	   if (! (trim($domnode->nodeValue) == "") ) {
-	     switch ($domnode->nodeType) {
-	       case XML_TEXT_NODE: {
-	         $array_ptr['cdata'] = $domnode->nodeValue;
-	         break;
-	       }
-	       case XML_ELEMENT_NODE: {
-	         $array_ptr = &$array[$domnode->nodeName][];
-	         if ($domnode->hasAttributes() ) {
-	           $attributes = $domnode->attributes ();
-	           if (!is_array ($attributes)) {
-	             break;
-	           }
-	           foreach ($attributes as $index => $domobj) {
-	             $array_ptr[$index] = $array_ptr[$domobj->name] = $domobj->value;
-	           }
-	         }
-	         break;
-	       }
-	     }
-	     if ( $domnode->hasChildNodes() ) {
-	       dom_to_simple_array($domnode, $array_ptr);
-	     }
-	   }
-	   $domnode = $domnode->nextSibling;
-	  }
-	}
 
 ?>
