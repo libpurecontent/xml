@@ -4,7 +4,7 @@
 class xml
 {
 	# Function to convert XML to an array
-	function xml2array ($xmlfile, $cacheXml = false, $documentToDataOrientatedXml = true, $xmlIsFile = true)
+	function xml2array ($xmlfile, $cacheXml = false, $documentToDataOrientatedXml = true, $xmlIsFile = true, $getAttributes = false)
 	{
 		# If there is not a cached file, pre-process the XML
 		if (!$cacheXml || ($cacheXml && !file_exists ($cacheXml))) {
@@ -13,22 +13,23 @@ class xml
 			$xml = ($xmlIsFile ? file_get_contents ($xmlfile) : $xmlfile);
 			
 			# Remove the DOCTYPE
+			$xml = ereg_replace ('<!DOCTYPE ([^]]+)]>', '', $xml);
 			$xml = ereg_replace ('<!DOCTYPE ([^>]+)>', '', $xml);
 			
 			# Convert entities
 			$entities = array (
-				#!# Convert useful section in http://xml.ascc.net/resource/entities/ISO/ISOlat1.pen to an array
-				'&ucirc;' => '&#219;',
-				'&ograve;' => '&#210;',
-				'&agrave;' => '&#192;',
-				'&ouml;' => '&#214;',
-				'&eacute;' => '&#201;',
+				#!# Convert useful section	 in http://xml.ascc.net/resource/entities/ISO/ISOlat1.pen to an array
+				'&ucirc;' => '&#251;',
+				'&ograve;' => '&#242;',
+				'&agrave;' => '&#224;',
+				'&ouml;' => '&#246;',
+				'&eacute;' => '&#233;',
 				'&pound;' => '&#163;',
-				'&ugrave;' => '&#217;',
-				'&egrave;' => '&#200;',
-				'&acirc;' => '&#194;',
-				'&ecirc;' => '&#202;',
-				'&auml;' => '&#196;',
+				'&ugrave;' => '&#249;',
+				'&egrave;' => '&#232;',
+				'&acirc;' => '&#226;',
+				'&ecirc;' => '&#234;',
+				'&auml;' => '&#228;',
 			);
 			$xml = str_ireplace (array_keys ($entities), array_values ($entities), $xml);
 			
@@ -48,10 +49,10 @@ class xml
 		}
 		
 		# Convert the XML to an object
-		$xmlobject = simplexml_load_string ($xml);
+		$xmlobject = simplexml_load_string ($xml, NULL, LIBXML_NOENT);
 		
 		# Convert the object to an array
-		$xml = self::simplexml2array ($xmlobject);
+		$xml = self::simplexml2array ($xmlobject, $getAttributes);
 		
 		# Return the XML
 		return $xml;
@@ -77,32 +78,44 @@ class xml
 	
 	
 	# From http://uk2.php.net/manual/en/ref.simplexml.php
-	function simplexml2array($xml)
+	function simplexml2array ($xml, $getAttributes = false, $utf8encode = true)
 	{
-	   if (get_class($xml) == 'SimpleXMLElement') {
+	   if (get_class ($xml) == 'SimpleXMLElement') {
 	       $attributes = $xml->attributes();
-	       foreach($attributes as $k=>$v) {
-	           if ($v) $a[$k] = (string) $v;
+	       foreach ($attributes as $k => $v) {
+	           if ($v) {
+//			   	$v = str_replace ("\xe2\x80\xa6", '&#8230;', $v);
+//			   	if ($utf8encode) {$v = utf8_decode ($v);}
+			   	$a[$k] = (string) $v;
+			}
 	       }
 	       $x = $xml;
-	       $xml = get_object_vars($xml);
+	       $xml = get_object_vars ($xml);
 	   }
 	   
-	   if (is_array($xml)) {
-	       if (count($xml) == 0) return (string) $x; // for CDATA
-	       foreach($xml as $key=>$value) {
-	           $r[$key] = self::simplexml2array($value);
+	   if (is_array ($xml)) {
+	       if (count ($xml) == 0) {
+//		   	   if ($utf8encode) {$x = utf8_decode ($x);}
+		       return (string) $x; // for CDATA
+		   }
+	       foreach ($xml as $key => $value) {
+	           $r[$key] = self::simplexml2array ($value, $getAttributes, $utf8encode);
 	       }
-	       // if (isset($a)) $r['@'] = $a;    // Attributes
+	       if ($getAttributes) {
+				if (isset ($a)) {
+					$r['@'] = $a;    // Attributes
+				}
+		   }
 	       return $r;
 	   }
 	   
+	   if ($utf8encode) {$xml = utf8_decode ($xml);}
 	   return (string) $xml;
 	}
 	
 	
 	# Function to chunk files into pieces into a database
-	function databaseChunking ($file, $authenticationFile, $database, $table, $xpath, $recordIdPath, $documentToDataOrientatedXml = true, $timeLimit = 300)
+	function databaseChunking ($file, $authenticationFile, $database, $table, $xpathRecordsRoot, $recordIdPath, $otherPaths = array (), $multiplesDelimiter = '|', $documentToDataOrientatedXml = true, $timeLimit = 300)
 	{
 		# Set a larger time limit than the default
 		set_time_limit ($timeLimit);
@@ -114,24 +127,24 @@ class xml
 		// $xml = ereg_replace ('<!DOCTYPE ([^>]+)>', '', $xml);
 		
 		# Replace . characters in tag names to work around bug http://bugs.mysql.com/20795
-		#!# Remove this when fixed in MySQL
+		#!# Remove this block of code when released in MySQL
 		// $xml = ereg_replace ('<([^\.>]*)\.([^>]*)>', '<\1-\2>', $xml);
 		$xml = str_replace ('PART.SUMMARY>', 'PART-SUMMARY>', $xml);
 		
 		# Convert entities
 		$entities = array (
 			#!# Convert useful section in http://xml.ascc.net/resource/entities/ISO/ISOlat1.pen to an array
-			'&ucirc;' => '&#219;',
-			'&ograve;' => '&#210;',
-			'&agrave;' => '&#192;',
-			'&ouml;' => '&#214;',
-			'&eacute;' => '&#201;',
+			'&ucirc;' => '&#251;',
+			'&ograve;' => '&#242;',
+			'&agrave;' => '&#224;',
+			'&ouml;' => '&#246;',
+			'&eacute;' => '&#233;',
 			'&pound;' => '&#163;',
-			'&ugrave;' => '&#217;',
-			'&egrave;' => '&#200;',
-			'&acirc;' => '&#194;',
-			'&ecirc;' => '&#202;',
-			'&auml;' => '&#196;',
+			'&ugrave;' => '&#249;',
+			'&egrave;' => '&#232;',
+			'&acirc;' => '&#226;',
+			'&ecirc;' => '&#234;',
+			'&auml;' => '&#228;',
 		);
 		$xml = str_ireplace (array_keys ($entities), array_values ($entities), $xml);
 		
@@ -149,17 +162,35 @@ class xml
 		
 		# Chunk the XML
 		$xml = new SimpleXMLElement ($xml);
-		$records = $xml->xpath ($xpath);
+		$records = $xml->xpath ($xpathRecordsRoot);
 		foreach ($records as $record) {
 			
 			# Assign the record number
-			$id = (string) $record->$recordIdPath;
+			$id = trim ((string) $record->$recordIdPath);
 			
 			# Get the record itself as XML
 			$data = $record->asXML();
 			
+#!# Convert hex entities in the XML
+// $data = str_replace ('&#xF6;', '&#246;', $data);
+			
 			# Add the data to the array of records
 			$dataset[$id] = array ('id' => $id, 'data' => $data);
+			
+			# Add other records
+			if ($otherPaths) {
+				foreach ($otherPaths as $name => $path) {
+					if ($xpathResults = $record->xpath ($path)) {
+						$xpathResultComponents = array ();
+						foreach ($xpathResults as $xpathResult) {
+							$item = trim ((string) $xpathResult);
+							if (!empty ($item)) {$xpathResultComponents[] = $item;}
+						}
+						$dataset[$id][$name] = implode ($multiplesDelimiter, $xpathResultComponents);
+						if (count ($xpathResultComponents) > 1) {$dataset[$id][$name] = $multiplesDelimiter . $dataset[$id][$name] . $multiplesDelimiter;}
+					}
+				}
+			}
 		}
 		
 		# Get the authentication credentials
@@ -179,14 +210,14 @@ class xml
 		
 		# Insert the data
 		foreach ($dataset as $key => $data) {
-			if (!$databaseConnection->insert ($database, $table, $data, 'data=VALUES(data)')) {
+			if (!$databaseConnection->insert ($database, $table, $data, true, $debug = false)) {
 				echo "<p>There was a problem inserting the data into the database.</p>";
 				return false;
 			}
 		}
 		
 		# Return success
-		return true;
+		return count ($dataset);
 	}
 }
 
