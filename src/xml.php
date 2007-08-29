@@ -1,6 +1,7 @@
 <?php
 
 # XML wrapper class
+# Version 1.0.0
 class xml
 {
 	# Function to convert XML to an array
@@ -342,16 +343,18 @@ class xml
 	
 	
 	# From http://uk2.php.net/manual/en/ref.simplexml.php
-	function simplexml2array ($xml, $getAttributes = false, $utf8encode = true)
+	function simplexml2array ($xml, $getAttributes = false, $utf8decode = true, $htmlentities = false)
 	{
 	   if (get_class ($xml) == 'SimpleXMLElement') {
 	       $attributes = $xml->attributes();
 	       foreach ($attributes as $k => $v) {
 	           if ($v) {
 //			   	$v = str_replace ("\xe2\x80\xa6", '&#8230;', $v);
-//			   	if ($utf8encode) {$v = utf8_decode ($v);}
-			   	$a[$k] = (string) $v;
-			}
+//			   	if ($utf8decode) {$v = utf8_decode ($v);}
+				$string = (string) $v;
+				if ($htmlentities) {$string = htmlentities ($string, ENT_COMPAT, 'UTF-8');}
+				$a[$k] = $string;
+			 }
 	       }
 	       $x = $xml;
 	       $xml = get_object_vars ($xml);
@@ -359,11 +362,13 @@ class xml
 	   
 	   if (is_array ($xml)) {
 	       if (count ($xml) == 0) {
-//		   	   if ($utf8encode) {$x = utf8_decode ($x);}
-		       return (string) $x; // for CDATA
+//		   	   if ($utf8decode) {$x = utf8_decode ($x);}
+		       $return = (string) $x; // for CDATA
+			   if ($htmlentities) {$x = htmlentities ($x, ENT_COMPAT, 'UTF-8');}
+			   return $return;
 		   }
 	       foreach ($xml as $key => $value) {
-	           $r[$key] = self::simplexml2array ($value, $getAttributes, $utf8encode);
+	           $r[$key] = self::simplexml2array ($value, $getAttributes, $utf8decode, $htmlentities);
 	       }
 	       if ($getAttributes) {
 				if (isset ($a)) {
@@ -373,7 +378,7 @@ class xml
 	       return $r;
 	   }
 	   
-	   if ($utf8encode) {$xml = utf8_decode ($xml);}
+	   if ($utf8decode) {$xml = utf8_decode ($xml);}
 	   return (string) $xml;
 	}
 	
