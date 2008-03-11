@@ -1,11 +1,12 @@
 <?php
 
 # XML wrapper class
-# Version 1.0.0
+# Version 1.1.0
 class xml
 {
 	# Function to convert XML to an array
-	function xml2array ($xmlfile, $cacheXml = false, $documentToDataOrientatedXml = true, $xmlIsFile = true, $getAttributes = false)
+	#!# Consider making the last two items default to false
+	function xml2array ($xmlfile, $cacheXml = false, $documentToDataOrientatedXml = true, $xmlIsFile = true, $getAttributes = false, $entityConversions = false, $utf8Decode = false)
 	{
 		# If there is not a cached file, pre-process the XML
 		if (!$cacheXml || ($cacheXml && !file_exists ($cacheXml))) {
@@ -17,11 +18,15 @@ class xml
 			$xml = ereg_replace ('<!DOCTYPE ([^]]+)]>', '', $xml);
 			$xml = ereg_replace ('<!DOCTYPE ([^>]+)>', '', $xml);
 			
-			# Get the entities
-			$entities = self::getEntityConversions ();
-			
-			# Convert entities
-			$xml = str_ireplace (array_keys ($entities), array_values ($entities), $xml);
+			# Do entity conversions if necessary
+			if ($entityConversions) {
+				
+				# Get the entities
+				$entities = self::getEntityConversions ();
+				
+				# Convert entities
+				$xml = str_replace (array_keys ($entities), array_values ($entities), $xml);
+			}
 			
 			# Convert from document-orientated to data-orientated XML, if required
 			if ($documentToDataOrientatedXml) {
@@ -42,7 +47,7 @@ class xml
 		$xmlobject = simplexml_load_string ($xml, NULL, LIBXML_NOENT);
 		
 		# Convert the object to an array
-		$xml = self::simplexml2array ($xmlobject, $getAttributes);
+		$xml = self::simplexml2array ($xmlobject, $getAttributes, $utf8Decode);
 		
 		# Return the XML
 		return $xml;
@@ -343,7 +348,7 @@ class xml
 	
 	
 	# From http://uk2.php.net/manual/en/ref.simplexml.php
-	function simplexml2array ($xml, $getAttributes = false, $utf8decode = true, $htmlentities = false)
+	function simplexml2array ($xml, $getAttributes = false, $utf8decode = false)
 	{
 	   if (get_class ($xml) == 'SimpleXMLElement') {
 	       $attributes = $xml->attributes();
@@ -352,7 +357,6 @@ class xml
 //			   	$v = str_replace ("\xe2\x80\xa6", '&#8230;', $v);
 //			   	if ($utf8decode) {$v = utf8_decode ($v);}
 				$string = (string) $v;
-				if ($htmlentities) {$string = htmlentities ($string, ENT_COMPAT, 'UTF-8');}
 				$a[$k] = $string;
 			 }
 	       }
@@ -364,11 +368,10 @@ class xml
 	       if (count ($xml) == 0) {
 //		   	   if ($utf8decode) {$x = utf8_decode ($x);}
 		       $return = (string) $x; // for CDATA
-			   if ($htmlentities) {$x = htmlentities ($x, ENT_COMPAT, 'UTF-8');}
 			   return $return;
 		   }
 	       foreach ($xml as $key => $value) {
-	           $r[$key] = self::simplexml2array ($value, $getAttributes, $utf8decode, $htmlentities);
+	           $r[$key] = self::simplexml2array ($value, $getAttributes, $utf8decode);
 	       }
 	       if ($getAttributes) {
 				if (isset ($a)) {
@@ -384,7 +387,7 @@ class xml
 	
 	
 	# Function to chunk files into pieces into a database
-	function databaseChunking ($file, $authenticationFile, $database, $table, $xpathRecordsRoot, $recordIdPath, $otherPaths = array (), $multiplesDelimiter = '|', $documentToDataOrientatedXml = true, $timeLimit = 300)
+	function databaseChunking ($file, $authenticationFile, $database, $table, $xpathRecordsRoot, $recordIdPath, $otherPaths = array (), $multiplesDelimiter = '|', $entityConversions = true, $documentToDataOrientatedXml = true, $timeLimit = 300)
 	{
 		# Set a larger time limit than the default
 		set_time_limit ($timeLimit);
@@ -395,11 +398,15 @@ class xml
 		# Remove the DOCTYPE
 		// $xml = ereg_replace ('<!DOCTYPE ([^>]+)>', '', $xml);
 		
-		# Get the entities
-		$entities = self::getEntityConversions ();
-		
-		# Convert entities
-		$xml = str_ireplace (array_keys ($entities), array_values ($entities), $xml);
+		# Do entity conversions if required
+		if ($entityConversions) {
+			
+			# Get the entities
+			$entities = self::getEntityConversions ();
+			
+			# Convert entities
+			$xml = str_replace (array_keys ($entities), array_values ($entities), $xml);
+		}
 		
 		# Convert from document-orientated to data-orientated XML, if required
 		if ($documentToDataOrientatedXml) {
@@ -463,7 +470,7 @@ class xml
 		
 		# Insert the data
 		foreach ($dataset as $key => $data) {
-			if (!$databaseConnection->insert ($database, $table, $data, true, $debug = false)) {
+			if (!$databaseConnection->insert ($database, $table, $data, true)) {
 				echo "<p>There was a problem inserting the data into the database.</p>";
 				return false;
 			}
