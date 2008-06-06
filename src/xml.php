@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.1.0
+# Version 1.1.1
 class xml
 {
 	# Function to convert XML to an array
@@ -395,9 +395,6 @@ class xml
 		# Obtain the file
 		$xml = file_get_contents ($file);
 		
-		# Remove the DOCTYPE
-		// $xml = ereg_replace ('<!DOCTYPE ([^>]+)>', '', $xml);
-		
 		# Do entity conversions if required
 		if ($entityConversions) {
 			
@@ -426,13 +423,18 @@ class xml
 		foreach ($records as $record) {
 			
 			# Assign the record number
-			$id = trim ((string) $record->$recordIdPath);
+			$id = NULL;
+			$xpathResults = $record->xpath ($recordIdPath);
+			foreach ($xpathResults as $xpathResult) {
+				$id = trim ((string) $xpathResult);
+				break;
+			}
+			
+			# Skip if no ID
+			if (!$id) {continue;}
 			
 			# Get the record itself as XML
 			$data = $record->asXML();
-			
-#!# Convert hex entities in the XML
-// $data = str_replace ('&#xF6;', '&#246;', $data);
 			
 			# Add the data to the array of records
 			$dataset[$id] = array ('id' => $id, 'data' => $data);
@@ -471,7 +473,8 @@ class xml
 		# Insert the data
 		foreach ($dataset as $key => $data) {
 			if (!$databaseConnection->insert ($database, $table, $data, true)) {
-				echo "<p>There was a problem inserting the data into the database.</p>";
+				echo "<p>There was a problem inserting the data into the database. MySQL said:</p>";
+				application::dumpData ($databaseConnection->error ());
 				return false;
 			}
 		}
