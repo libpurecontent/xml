@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.1.1
+# Version 1.1.2
 class xml
 {
 	# Function to convert XML to an array
@@ -442,14 +442,44 @@ class xml
 			# Add other records
 			if ($otherPaths) {
 				foreach ($otherPaths as $name => $path) {
-					if ($xpathResults = $record->xpath ($path)) {
-						$xpathResultComponents = array ();
-						foreach ($xpathResults as $xpathResult) {
-							$item = trim ((string) $xpathResult);
-							if (!empty ($item)) {$xpathResultComponents[] = $item;}
+					
+					# Skip if absent
+					if (empty ($path)) {continue;}
+					
+					# Switch to special handling if required, effectively using a callback method
+					# e.g. Material,Description/Material>foo::bar means
+					# $name = Material
+					# $path to get the array for is Description/Material, but pass that into foo::bar() statically first
+					$useCallback = false;
+					if (ereg ('^([^>]+)>([^:]+)::(.+)$', $path, $matches)) {
+						list ($ignore, $path, $class, $method) = $matches;
+						if (method_exists ($class, $method)) {
+							$useCallback = true;
 						}
-						$dataset[$id][$name] = implode ($multiplesDelimiter, $xpathResultComponents);
-						if (count ($xpathResultComponents) > 1) {$dataset[$id][$name] = $multiplesDelimiter . $dataset[$id][$name] . $multiplesDelimiter;}
+					}
+					
+					# Process this node
+					if ($xpathResults = $record->xpath ($path)) {
+						
+						# Use the callback if required
+						if ($useCallback) {
+							$result = call_user_func (array ($class, $method), $xpathResults);
+						} else {
+							
+							# Otherwise process natively
+							$xpathResultComponents = array ();
+							foreach ($xpathResults as $xpathResult) {
+								$item = trim ((string) $xpathResult);
+								if (!empty ($item)) {$xpathResultComponents[] = $item;}
+							}
+							$result = implode ("{$multiplesDelimiter}{$multiplesDelimiter}", $xpathResultComponents);
+							
+							# Surround with the delimiter if there is more than one component
+							if (count ($xpathResultComponents) > 1) {$result = $multiplesDelimiter . $result . $multiplesDelimiter;}
+						}
+						
+						# Assign the result
+						$dataset[$id][$name] = $result;
 					}
 				}
 			}
