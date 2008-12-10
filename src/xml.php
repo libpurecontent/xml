@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.1.2
+# Version 1.1.3
 class xml
 {
 	# Function to convert XML to an array
@@ -12,7 +12,7 @@ class xml
 		if (!$cacheXml || ($cacheXml && !file_exists ($cacheXml))) {
 			
 			# Get the XML
-			$xml = ($xmlIsFile ? file_get_contents ($xmlfile) : $xmlfile);
+			if (!$xml = ($xmlIsFile ? file_get_contents ($xmlfile) : $xmlfile)) {return false;}
 			
 			# Remove the DOCTYPE
 			$xml = ereg_replace ('<!DOCTYPE ([^]]+)]>', '', $xml);
@@ -43,11 +43,14 @@ class xml
 			$xml = file_get_contents ($cacheXml ? $cacheXml : $xmlfile);
 		}
 		
+		# End if a problem
+		if (!$xml) {return false;}
+		
 		# Convert the XML to an object
-		$xmlobject = simplexml_load_string ($xml, NULL, LIBXML_NOENT);
+		if (!$xmlobject = simplexml_load_string ($xml, NULL, LIBXML_NOENT)) {return false;}
 		
 		# Convert the object to an array
-		$xml = self::simplexml2array ($xmlobject, $getAttributes, $utf8Decode);
+		if (!$xml = self::simplexml2array ($xmlobject, $getAttributes, $utf8Decode)) {return false;}
 		
 		# Return the XML
 		return $xml;
@@ -334,6 +337,22 @@ class xml
 	{
 		# Perform a search & replace on the offending strings
 		#!# Note: this fails if xyz is one/two characters only: <CONTAINER>xyz<SUB-CONTAINER>Data</SUB-CONTAINER>
+		
+		/*  Here is a worked-through example of this bug:
+		
+		<Administration><Progress><Keyword>R</Keyword><Type>
+		
+		$search = "<([-a-zA-Z0-9]+)>([^<]{1})([^/]{1})([^<]+)" . "<([-a-zA-Z0-9]+)>";
+		$replacement = "<\\1><\\1>\\2\\3\\4</\\1>" . "<\\5>";
+				
+		<([-a-zA-Z0-9]+)>	([^<]{1})	([^/]{1})	([^<]+)		<([-a-zA-Z0-9]+)>
+		
+		<Keyword>			R			<			/Keyword>	<Type>
+		
+		<Keyword><Keyword>R</Keyword></Keyword><Type>
+		
+		*/
+		
 		#!# This is also catching simple top-level cases like e.g. <NUMBER-OF-ITEMS>1</NUMBER-OF-ITEMS> for some reason
 		$search = "<([-a-zA-Z0-9]+)>([^<]{1})([^/]{1})([^<]+)" . "<([-a-zA-Z0-9]+)>";
 				// e.g. <CLASSIFIED-NAME>Labrador Inuit\n<SYSTEM>
@@ -435,6 +454,13 @@ class xml
 			
 			# Get the record itself as XML
 			$data = $record->asXML();
+			
+/*
+	if ($id == 'N: 257') {
+		echo "<pre>" . htmlspecialchars ($data) . '</pre>';
+		return false;
+	}
+*/
 			
 			# Add the data to the array of records
 			$dataset[$id] = array ('id' => $id, 'data' => $data);
