@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.1.3
+# Version 1.1.4
 class xml
 {
 	# Function to convert XML to an array
@@ -412,6 +412,10 @@ class xml
 		set_time_limit ($timeLimit);
 		
 		# Obtain the file
+		if (!is_readable ($file)) {
+			echo "\n<p class=\"warning\">The file {$file} could not be read or does not exist.</p>";
+			return false;
+		}
 		$xml = file_get_contents ($file);
 		
 		# Do entity conversions if required
@@ -514,7 +518,7 @@ class xml
 		# Get the authentication credentials
 		#!# This is failing
 		if (!is_readable ($authenticationFile)) {
-			echo "<p>The authentication file could not be read or does not exist.</p>";
+			echo "\n<p class=\"warning\">The authentication file could not be read or does not exist.</p>";
 			return false;
 		}
 		include ($authenticationFile);
