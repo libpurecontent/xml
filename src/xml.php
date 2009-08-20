@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.1.4
+# Version 1.1.5
 class xml
 {
 	# Function to convert XML to an array
@@ -354,11 +354,9 @@ class xml
 		*/
 		
 		#!# This is also catching simple top-level cases like e.g. <NUMBER-OF-ITEMS>1</NUMBER-OF-ITEMS> for some reason
-		$search = "<([-a-zA-Z0-9]+)>([^<]{1})([^/]{1})([^<]+)" . "<([-a-zA-Z0-9]+)>";
-				// e.g. <CLASSIFIED-NAME>Labrador Inuit\n<SYSTEM>
-			   // "<([-a-zA-Z0-9]+)>([^<]{1})([^<]+)" . "<([-a-zA-Z0-9]+)>([^<]*)</\\4>" . "</\\1>"	// Note backreferences in search string	// e.g. <CLASSIFIED-NAME>Labrador Inuit\n<SYSTEM>Cultural affiliation - former</SYSTEM></CLASSIFIED-NAME>
-		$replacement = "<\\1><\\1>\\2\\3\\4</\\1>" . "<\\5>";
-					// "<\\1><\\1>\\2\\3</\\1>" . "<\\4>\\5</\\4>" . "</\\1>",
+		#!# Can't get the spaces aspect working
+		$search = "<([-a-zA-Z0-9]+)>" . /* "\s*" . */ "([^<])([^/])([^<]+)" . /* "\s*" . */ "<([-a-zA-Z0-9]+)(/?)>";
+		$replacement = "<\\1><\\1>\\2\\3\\4</\\1><\\5\\6>";
 		$xml = preg_replace ('|' . $search . '|ims', $replacement, $xml);	// preg_replace is much faster than ereg_replace and supports backreferences in the search string
 		
 		# Return the XML
