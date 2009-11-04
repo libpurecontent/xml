@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.1.5
+# Version 1.2.0
 class xml
 {
 	# Function to convert XML to an array
@@ -365,9 +365,9 @@ class xml
 	
 	
 	# From http://uk2.php.net/manual/en/ref.simplexml.php
-	function simplexml2array ($xml, $getAttributes = false, $utf8decode = false)
+	function simplexml2array (/* Object */ $xml, $getAttributes = false, $utf8decode = false)
 	{
-	   if (get_class ($xml) == 'SimpleXMLElement') {
+	   if (is_a ($xml, 'SimpleXMLElement')) {
 	       $attributes = $xml->attributes();
 	       foreach ($attributes as $k => $v) {
 	           if ($v) {
