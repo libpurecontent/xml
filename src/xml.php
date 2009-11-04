@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.2.0
+# Version 1.2.1
 class xml
 {
 	# Function to convert XML to an array
@@ -540,6 +540,79 @@ class xml
 		# Return success
 		return count ($dataset);
 	}
+}
+
+
+
+// From: http://uk2.php.net/book.dom
+/**
+ * basic class for converting an array to xml.
+ * @author Matt Wiseman (trollboy at shoggoth.net)
+ * License unknown - contact the author
+ *
+ */
+class array2xml {
+    
+    public $data;
+    public $dom_tree;
+    
+    /**
+     * basic constructor
+     *
+     * @param array $array
+     */
+    public  function __construct($array){
+        if(!is_array($array)){
+            throw new Exception('array2xml requires an array', 1);
+            unset($this);
+        }
+        if(!count($array)){
+            throw new Exception('array is empty', 2);
+            unset($this);
+        }
+        
+        $this->data = new DOMDocument('1.0');
+        
+        $this->dom_tree = $this->data->createElement('result');
+        $this->data->appendChild($this->dom_tree);
+        $this->recurse_node($array, $this->dom_tree);
+    }
+    
+    /**
+     * recurse a nested array and return dom back
+     *
+     * @param array $data
+     * @param dom element $obj
+     */
+    private function recurse_node($data, $obj){
+        $i = 0;
+        foreach($data as $key=>$value){
+            if(is_array($value)){
+                //recurse if neccisary
+                $sub_obj[$i] = $this->data->createElement($key);
+                $obj->appendChild($sub_obj[$i]);
+                $this->recurse_node($value, $sub_obj[$i]);
+            } elseif(is_object($value)) {
+                //no object support so just say what it is
+                $sub_obj[$i] = $this->data->createElement($key, 'Object: "' . $key . '" type: "'  . get_class($value) . '"');
+                $obj->appendChild($sub_obj[$i]);
+            } else {
+                //straight up data, no weirdness
+                $sub_obj[$i] = $this->data->createElement($key, $value);
+                $obj->appendChild($sub_obj[$i]);
+            }
+            $i++;
+        }
+    }
+    
+    /**
+     * get the finished xml
+     *
+     * @return string
+     */
+    public function saveXML(){
+        return $this->data->saveXML();
+    }
 }
 
 ?>
