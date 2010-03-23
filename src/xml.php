@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.2.2
+# Version 1.3.0
 class xml
 {
 	# Function to convert XML to an array
@@ -15,8 +15,8 @@ class xml
 			if (!$xml = ($xmlIsFile ? file_get_contents ($xmlfile) : $xmlfile)) {return false;}
 			
 			# Remove the DOCTYPE
-			$xml = ereg_replace ('<!DOCTYPE ([^]]+)]>', '', $xml);
-			$xml = ereg_replace ('<!DOCTYPE ([^>]+)>', '', $xml);
+			$xml = preg_replace ('/<!DOCTYPE ([^]]+)]>/', '', $xml);
+			$xml = preg_replace ('/<!DOCTYPE ([^>]+)>/', '', $xml);
 			
 			# Do entity conversions if necessary
 			if ($entityConversions) {
@@ -358,7 +358,7 @@ class xml
 		$search = "<([-a-zA-Z0-9]+)>" . /* "\s*" . */ "([^<])([^/])([^<]+)" . /* "\s*" . */ "<([-a-zA-Z0-9]+)(/?)>";
 		$replacement = "<\\1><\\1>\\2\\3\\4</\\1><\\5\\6>";
 		#!# This is currently extremely memory-intensive and prone to failure with large files
-		$xml = preg_replace ('|' . $search . '|ims', $replacement, $xml);	// preg_replace is much faster than ereg_replace and supports backreferences in the search string
+		$xml = preg_replace ('|' . $search . '|ims', $replacement, $xml);	// preg_replace supports backreferences in the search string
 		
 		# Return the XML
 		return $xml;
@@ -479,7 +479,7 @@ class xml
 					# $name = Material
 					# $path to get the array for is Description/Material, but pass that into foo::bar() statically first
 					$useCallback = false;
-					if (ereg ('^([^>]+)>([^:]+)::(.+)$', $path, $matches)) {
+					if (preg_match ('/^([^>]+)>([^:]+)::(.+)$/', $path, $matches)) {
 						list ($ignore, $path, $class, $method) = $matches;
 						if (method_exists ($class, $method)) {
 							$useCallback = true;
