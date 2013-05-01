@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.3.2
+# Version 1.4.0
 class xml
 {
 	# Function to convert XML to an array
@@ -594,6 +594,133 @@ class xml
 		
 		# Return the HTML
 		return $html;
+	}
+	
+	
+	# Function to get the schema as a list with a statement of whether each key is a container
+	public function flattenedXmlWithContainership ($xml)
+	{
+		# Get the schema as an array
+		$schemaXml = self::xml2array ($xml, false, true, $xmlIsFile = false, false, false, false, $skipComments = true);
+		
+		# Flatten the schema
+		require_once ('directories.php');
+		$schemaFlattened = directories::flatten ($schemaXml);
+		
+		# Rearrange as a list which specifies which are containers
+		$schema = array ();
+		foreach ($schemaFlattened as $path) {
+			
+			# Determine if the path is a container
+			$isContainer = false;
+			foreach ($schemaFlattened as $testKey) {
+				if (preg_match ("|^{$path}.+$|", $testKey)) {
+					$isContainer = true;
+					break;	// No point finding any more
+				}
+			}
+			
+			# Register this path
+			$schema[$path] = $isContainer;
+		}
+		
+		# Return the schema
+		return $schema;
+	}
+	
+	
+	# Function to generate an XML (hierarchical) representation of a record
+	public function dropSerialRecordIntoSchema ($schema, $record, &$errorHtml = '', &$debugString = '')
+	{
+		# Start an string to represent the eventual listing
+		$xml = '';
+		
+		# Start a stack
+		$stack = array ();
+		
+		# Loop through part of the record
+		$errorHtml = '';
+		$debugString = '';
+		foreach ($record as $index => $data) {
+			$key = $data['field'];
+			$value = $data['value'];
+			
+			# Register the key in the stack
+			array_push ($stack, $key);
+			
+			# Create a string representation of the current state of the stack
+			$stackAsString = '/' . implode ('/', $stack) . '/';
+			
+			# Iterate back up the stack until a match is found
+			$stackAsStringBeforeLoop = $stackAsString;
+			$debugString .= "\n" . $stackAsStringBeforeLoop;
+			while (!isSet ($schema[$stackAsString])) {
+				
+				# Cache the stack string before changes
+				$stackAsStringBefore = $stackAsString;
+				
+				# Revert the addition of the current item, also remove the previous item in the stack, then re-add the current item
+				array_pop ($stack);	// Revert current item
+				$closeKey = array_pop ($stack);	// Remove previous item
+				array_push ($stack, $key);	// Add current item
+				
+				# Close the key
+				$tabs = str_repeat ("\t", count ($stack) - 1);
+				$xml .= "\n{$tabs}</{$closeKey}>";
+				
+				# Update the stack string
+				$stackAsString = '/' . implode ('/', $stack) . '/';
+				$debugString .= "\n&mdash;" . $stackAsString;
+				
+				# Detect unmatchable keys, which cause an infinite loop
+				if ($stackAsStringBefore == $stackAsString) {
+					$errorHtml = "<p class=\"warning\">PARSE ERROR: The schema processing failed at <strong>{$stackAsStringBeforeLoop}</strong>, indicating an incomplete schema in the area near before this. Please modify the schema.</p>";
+					$debugString = trim ($debugString);
+					$xml = trim ($xml);
+					return $xml;
+				}
+			}
+			
+			# If a container, open the key
+			$isContainer = $schema[$stackAsString];
+			if ($isContainer) {
+				$tabs = str_repeat ("\t", count ($stack) - 1);
+				$xml .= "\n{$tabs}<{$key}>";
+				continue;
+			}
+			
+			# It's a value, so write the value, and close the tag, remove it from the stack
+			$tabs = str_repeat ("\t", count ($stack) - 1);
+			$xml .= "\n{$tabs}<{$key}>";
+			$xml .= htmlspecialchars ($value);
+			$xml .= "</{$key}>";
+			array_pop ($stack);
+		}
+		
+		//application::dumpData ($stack);
+		$isContainer = $schema[$stackAsString];
+		if ($isContainer) {
+			$xml .= htmlspecialchars ($value);
+			$xml .= "</{$key}>";
+			array_pop ($stack);
+		}
+		
+		# Now release the remainder of the stack, i.e. close the opened tags
+		foreach ($stack as $key) {
+			$tabs = str_repeat ("\t", count ($stack) - 1);
+			$closeKey = array_pop ($stack);
+			$xml .= "\n{$tabs}</{$closeKey}>";
+		}
+		
+		# Trim the XML
+		$xml = trim ($xml);
+		
+		# Ensure debugging output is empty
+		$errorHtml = '';
+		$debugString = '';
+		
+		# Return the XML
+		return $xml;
 	}
 }
 
