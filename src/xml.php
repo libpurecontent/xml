@@ -1,12 +1,12 @@
 <?php
 
 # XML wrapper class
-# Version 1.4.0
+# Version 1.5.0
 class xml
 {
 	# Function to convert XML to an array
 	#!# Consider making the last two items default to false
-	function xml2array ($xmlfile, $cacheXml = false, $documentToDataOrientatedXml = true, $xmlIsFile = true, $getAttributes = false, $entityConversions = false, $utf8Decode = false, $skipComments = false)
+	public static function xml2array ($xmlfile, $cacheXml = false, $documentToDataOrientatedXml = true, $xmlIsFile = true, $getAttributes = false, $entityConversions = false, $utf8Decode = false, $skipComments = false)
 	{
 		# If there is not a cached file, pre-process the XML
 		if (!$cacheXml || ($cacheXml && !file_exists ($cacheXml))) {
@@ -47,6 +47,7 @@ class xml
 		if (!$xml) {return false;}
 		
 		# Convert the XML to an object
+		#!# Note that this will lose single-item -containing nodes, e.g. <foo><bar /><foo> will lose bar
 		if (!$xmlobject = simplexml_load_string ($xml, NULL, LIBXML_NOENT)) {return false;}
 		
 		# Convert the object to an array
@@ -58,7 +59,7 @@ class xml
 	
 	
 	# Function to get entity conversion
-	function getEntityConversions ($url = 'http://www.w3.org/TR/html4/sgml/entities.html')
+	public static function getEntityConversions ($url = 'http://www.w3.org/TR/html4/sgml/entities.html')
 	{
 		/* This commented out code results in the array below
 		# Get the file contents
@@ -333,7 +334,7 @@ class xml
 	
 	
 	# Function to convert from document-orientated to data-orientated XML
-	function documentToDataOrientatedXml ($xml)
+	public static function documentToDataOrientatedXml ($xml)
 	{
 		# Perform a search & replace on the offending strings
 		#!# Note: this fails if xyz is one/two characters only: <CONTAINER>xyz<SUB-CONTAINER>Data</SUB-CONTAINER>
@@ -366,7 +367,7 @@ class xml
 	
 	
 	# From http://uk2.php.net/manual/en/ref.simplexml.php
-	function simplexml2array (/* Object */ $xml, $getAttributes = false, $utf8decode = false, $skipComments = false)
+	public static function simplexml2array (/* Object */ $xml, $getAttributes = false, $utf8decode = false, $skipComments = false)
 	{
 	   if (is_a ($xml, 'SimpleXMLElement')) {
 	       $attributes = $xml->attributes();
@@ -406,7 +407,7 @@ class xml
 	
 	
 	# Function to chunk files into pieces into a database; NB This does *not* clear existing records - only inserts/overwrites records
-	function databaseChunking ($file, $authenticationFile, $database, $table, $xpathRecordsRoot, $recordIdPath, $otherPaths = array (), $multiplesDelimiter = '|', $entityConversions = true, $documentToDataOrientatedXml = true, $timeLimit = 300)
+	public static function databaseChunking ($file, $authenticationFile, $database, $table, $xpathRecordsRoot, $recordIdPath, $otherPaths = array (), $multiplesDelimiter = '|', $entityConversions = true, $documentToDataOrientatedXml = true, $timeLimit = 300)
 	{
 		# Set a larger time limit than the default
 		set_time_limit ($timeLimit);
@@ -544,7 +545,7 @@ class xml
 	
 	
 	# XML string formatter, based on http://forums.devnetwork.net/viewtopic.php?p=213989
-	function formatter ($xml, $boxClass = 'code')
+	public static function formatter ($xml, $boxClass = 'code')
 	{
 		// add marker linefeeds to aid the pretty-tokeniser (adds a linefeed between all tag-end boundaries)
 		$xml = preg_replace ('/(>)(<)(\/*)/', "$1\n$2$3", $xml);
@@ -598,7 +599,7 @@ class xml
 	
 	
 	# Function to get the schema as a list with a statement of whether each key is a container
-	public function flattenedXmlWithContainership ($xml)
+	public static function flattenedXmlWithContainership ($xml)
 	{
 		# Get the schema as an array
 		$schemaXml = self::xml2array ($xml, false, true, $xmlIsFile = false, false, false, false, $skipComments = true);
@@ -630,7 +631,7 @@ class xml
 	
 	
 	# Function to generate an XML (hierarchical) representation of a record
-	public function dropSerialRecordIntoSchema ($schema, $record, &$errorHtml = '', &$debugString = '')
+	public static function dropSerialRecordIntoSchema ($schema, $record, &$errorHtml = '', &$debugString = '')
 	{
 		# Start an string to represent the eventual listing
 		$xml = '';
