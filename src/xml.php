@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.5.0
+# Version 1.6.0
 class xml
 {
 	# Function to convert XML to an array
@@ -55,6 +55,27 @@ class xml
 		
 		# Return the XML
 		return $xml;
+	}
+	
+	
+	# Function to convert XML to an array, with namespace support
+	public static function xml2arrayWithNamespaces ($xmlString)
+	{
+		# Convert namespaces to a placeholder string for safety
+		$uniqueString = '____';		// String judged not to appear in key names
+		$xmlString = preg_replace ('/<([^:> ]+):([^>]+)>/', "<\\1{$uniqueString}\\2>", $xmlString);
+		
+		# Convert the XML to an array
+		$xml   = simplexml_load_string ($xmlString);
+		$array = json_decode (json_encode ((array) $xml), 1);
+		$array = array ($xml->getName () => $array);	// Restore top-level tag as this is lost in the conversion process
+		
+		# Substitute namespaces
+		require_once ('application.php');
+		$array = application::array_key_str_replace ($uniqueString, ':', $array);
+		
+		# Return the array
+		return $array;
 	}
 	
 	
