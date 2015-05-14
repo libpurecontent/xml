@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.6.0
+# Version 1.6.1
 class xml
 {
 	# Function to convert XML to an array
@@ -351,6 +351,26 @@ class xml
 		
 		# Return the matches
 		return $entities;
+	}
+	
+	
+	# Function to determine if a string is valid XML
+	public static function isValid ($string, &$errors = array ())
+	{
+		# Check the XML
+		libxml_use_internal_errors (true);
+		if (!$isValidXml = simplexml_load_string ($string)) {
+			
+			# Capture errors and assemble as a list
+			$errorObjects = libxml_get_errors ();
+			$errors = array ();
+			foreach ($errorObjects as $errorObject) {
+				$errors[] = "Line {$errorObject->line}, Character {$errorObject->column}: {$errorObject->message}";
+			}
+		}
+		
+		# Return status
+		return $isValidXml;
 	}
 	
 	
