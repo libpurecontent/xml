@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.6.1
+# Version 1.6.2
 class xml
 {
 	# Function to convert XML to an array
@@ -448,7 +448,7 @@ class xml
 	
 	
 	# Function to chunk files into pieces into a database; NB This does *not* clear existing records - only inserts/overwrites records
-	public static function databaseChunking ($file, $authenticationFile, $database, $table, $xpathRecordsRoot, $recordIdPath, $otherPaths = array (), $multiplesDelimiter = '|', $entityConversions = true, $documentToDataOrientatedXml = true, $timeLimit = 300)
+	public static function databaseChunking ($file, $credentials, $database, $table, $xpathRecordsRoot, $recordIdPath, $otherPaths = array (), $multiplesDelimiter = '|', $entityConversions = true, $documentToDataOrientatedXml = true, $timeLimit = 300)
 	{
 		# Set a larger time limit than the default
 		set_time_limit ($timeLimit);
@@ -558,11 +558,13 @@ class xml
 		
 		# Get the authentication credentials
 		#!# This is failing
-		if (!is_readable ($authenticationFile)) {
-			echo "\n<p class=\"warning\">The authentication file could not be read or does not exist.</p>";
-			return false;
+		if (is_string ($credentials)) {
+			if (!is_readable ($credentials)) {
+				echo "\n<p class=\"warning\">The authentication file could not be read or does not exist.</p>";
+				return false;
+			}
+			include ($credentials);
 		}
-		include ($authenticationFile);
 		
 		# Connect to the database
 		require_once ('database.php');
