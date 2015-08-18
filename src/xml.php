@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.6.2
+# Version 1.6.3
 class xml
 {
 	# Function to convert XML to an array
@@ -591,7 +591,7 @@ class xml
 	public static function formatter ($xml, $boxClass = 'code')
 	{
 		// add marker linefeeds to aid the pretty-tokeniser (adds a linefeed between all tag-end boundaries)
-		$xml = preg_replace ('/(>)(<)(\/*)/', "$1\n$2$3", $xml);
+		$xml = preg_replace ('/(>)\s*(<)(\/*)/', "$1\n$2$3", $xml);
 		
 		// now indent the tags
 		$token      = strtok ($xml, "\n");
@@ -620,6 +620,7 @@ class xml
 			
 			// Pad the line with the required number of leading spaces
 			$padString = "\t";
+			// Note: Warnings "str_repeat(): Second argument has to be greater than or equal to 0" mean that the XML is not properly data-orientated
 			$result .= str_repeat ($padString, $pad) . htmlspecialchars ($token) . "\n"; // add to the cumulative result, with linefeed
 			$token   = strtok ("\n"); // get the next token
 			$pad    += $indent; // update the pad size for subsequent lines    
