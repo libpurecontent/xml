@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.6.3
+# Version 1.6.4
 class xml
 {
 	# Function to convert XML to an array
@@ -675,13 +675,16 @@ class xml
 	
 	
 	# Function to generate an XML (hierarchical) representation of a record
-	public static function dropSerialRecordIntoSchema ($schema, $record, &$errorHtml = '', &$debugString = '')
+	public static function dropSerialRecordIntoSchema ($schema, $record, &$xPathMatches = array (), &$errorHtml = '', &$debugString = '')
 	{
 		# Start an string to represent the eventual listing
 		$xml = '';
 		
 		# Start a stack
 		$stack = array ();
+		
+		# Start an array of xPath matches, for passing back
+		$xPathMatches = array ();
 		
 		# Loop through part of the record
 		$errorHtml = '';
@@ -725,6 +728,9 @@ class xml
 					return $xml;
 				}
 			}
+			
+			# Register the match, trimming the final slash to make a proper XPath
+			$xPathMatches[$index] = rtrim ($stackAsString, '/');
 			
 			# If a container, open the key
 			$isContainer = $schema[$stackAsString];
