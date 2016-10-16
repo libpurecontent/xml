@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.6.4
+# Version 1.6.5
 class xml
 {
 	# Function to convert XML to an array
@@ -448,7 +448,7 @@ class xml
 	
 	
 	# Function to chunk files into pieces into a database; NB This does *not* clear existing records - only inserts/overwrites records
-	public static function databaseChunking ($file, $credentials, $database, $table, $xpathRecordsRoot, $recordIdPath, $otherPaths = array (), $multiplesDelimiter = '|', $entityConversions = true, $documentToDataOrientatedXml = true, $timeLimit = 300)
+	public static function databaseChunking ($file, $credentials, $database, $table, $xpathRecordsRoot, $recordIdPath, $otherPaths = array (), $multiplesDelimiter = '|', $entityConversions = true, $documentToDataOrientatedXml = true, $timeLimit = 300, $filter = false)
 	{
 		# Set a larger time limit than the default
 		set_time_limit ($timeLimit);
@@ -496,6 +496,13 @@ class xml
 			
 			# Skip if no ID
 			if (!$id) {continue;}
+			
+			# If a filter is defined check it
+			if ($filter) {
+				if (!$filterResult = $record->xpath ($filter)) {	// Check for any result, i.e. not empty array
+					continue;
+				}
+			}
 			
 			# Get the record itself as XML
 			$data = $record->asXML();
@@ -675,7 +682,7 @@ class xml
 	
 	
 	# Function to generate an XML (hierarchical) representation of a record
-	public static function dropSerialRecordIntoSchema ($schema, $record, &$xPathMatches = array (), &$errorHtml = '', &$debugString = '')
+	public static function dropSerialRecordIntoSchema ($schema, $record, &$xPathMatches = array (), &$xPathMatchesWithIndex = array (), &$errorHtml = '', &$debugString = '')
 	{
 		# Start an string to represent the eventual listing
 		$xml = '';
@@ -683,13 +690,17 @@ class xml
 		# Start a stack
 		$stack = array ();
 		
-		# Start an array of xPath matches, for passing back
-		$xPathMatches = array ();
+		# Start two arrays of xPath matches, for passing back
+		$xPathMatches = array ();	// e.g. /foo/bar
+		$xPathMatchesWithIndex = array ();	// e.g. /foo/bar[2]; values will always have an index, even if there is only one
+		
+		# Start a registry of xPath indexes, e.g. /foo => 2, /foo/bar => 1, for use with creating the $xPathMatchesWithIndex array
+		$xPathCounts = array ();
 		
 		# Loop through part of the record
 		$errorHtml = '';
 		$debugString = '';
-		foreach ($record as $index => $data) {
+		foreach ($record as $lineIndex => $data) {
 			$key = $data['field'];
 			$value = $data['value'];
 			
@@ -722,7 +733,7 @@ class xml
 				
 				# Detect unmatchable keys, which cause an infinite loop
 				if ($stackAsStringBefore == $stackAsString) {
-					$errorHtml = "<p class=\"warning\">PARSE ERROR: The schema processing failed at <strong>{$stackAsStringBeforeLoop}</strong>, indicating an incomplete schema in the area near before this. Please modify the schema.</p>";
+					$errorHtml = "<p class=\"warning\">PARSE ERROR: The schema processing failed at <strong>{$stackAsStringBeforeLoop}</strong>, indicating an incomplete schema in the area near before this or an incorrect record. Please modify the schema or fix the record.</p>";
 					$debugString = trim ($debugString);
 					$xml = trim ($xml);
 					return $xml;
@@ -730,7 +741,14 @@ class xml
 			}
 			
 			# Register the match, trimming the final slash to make a proper XPath
-			$xPathMatches[$index] = rtrim ($stackAsString, '/');
+			$xPath = rtrim ($stackAsString, '/');
+			$xPathMatches[$lineIndex] = $xPath;
+			
+			# Register this XPath in the counts registry, either creating it or incrementing it
+			$xPathCounts[$xPath] = (isSet ($xPathCounts[$xPath]) ? $xPathCounts[$xPath] : 0) + 1;	// XPaths are indexed from 1
+			
+			# Add the counts version
+			$xPathMatchesWithIndex[$lineIndex] = $xPath . '[' . $xPathCounts[$xPath] . ']';
 			
 			# If a container, open the key
 			$isContainer = $schema[$stackAsString];
