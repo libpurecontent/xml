@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.6.5
+# Version 1.6.6
 class xml
 {
 	# Function to convert XML to an array
@@ -597,8 +597,24 @@ class xml
 	# XML string formatter, based on http://forums.devnetwork.net/viewtopic.php?p=213989
 	public static function formatter ($xml, $boxClass = 'code')
 	{
+		# Protect inline tag combinations
+		$inlineTagCombinations = array (
+			'</a></p>',
+		);
+		$inlineTagCombinationsReplacements = array ();
+		$safeString = '~~FOO~~';
+		foreach ($inlineTagCombinations as $inlineTagCombination) {
+			$replacement = str_replace ('><', ">{$safeString}<", $inlineTagCombination);
+			$inlineTagCombinationsReplacements[$inlineTagCombination] = $replacement;
+		}
+		$xml = strtr ($xml, $inlineTagCombinationsReplacements);
+		
 		// add marker linefeeds to aid the pretty-tokeniser (adds a linefeed between all tag-end boundaries)
 		$xml = preg_replace ('/(>)\s*(<)(\/*)/', "$1\n$2$3", $xml);
+		
+		# Undo protection of inline tag combinations
+		$inlineTagCombinationsReplacements = array_flip ($inlineTagCombinationsReplacements);
+		$xml = strtr ($xml, $inlineTagCombinationsReplacements);
 		
 		// now indent the tags
 		$token      = strtok ($xml, "\n");
