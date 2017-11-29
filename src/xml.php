@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.6.6
+# Version 1.7.0
 class xml
 {
 	# Function to convert XML to an array
@@ -807,6 +807,41 @@ class xml
 		# Return the XML
 		return $xml;
 	}
+	
+	
+	# Function to get an XPath value
+	public static function xPathValue ($xml /* of type SimpleXMLElement */, $xPath, $autoPrependRoot = false)
+	{
+		if ($autoPrependRoot) {
+			$xPath = '/root' . $xPath;
+		}
+		$result = $xml->xpath ($xPath);
+		if (!$result) {return false;}
+		$value = array ();
+		foreach ($result as $node) {
+			$value[] = (string) $node;
+		}
+		$value = implode ($value);
+		return $value;
+	}
+	
+	
+	# Function to get a set of XPath values for a field known to have multiple entries; these are indexed from 1, mirroring the XPath spec, not 0
+	public static function xPathValues ($xml, $xPath, $autoPrependRoot = false, $maxItems = 20)
+	{
+		# Get each value
+		$values = array ();
+		for ($i = 1; $i <= $maxItems; $i++) {
+			$xPathThisI = str_replace ('%i', $i, $xPath);	// Convert %i to loop ID if present
+			$value = self::xPathValue ($xml, $xPathThisI, $autoPrependRoot);
+			if (strlen ($value)) {
+				$values[$i] = $value;
+			}
+		}
+		
+		# Return the values
+		return $values;
+	}
 }
 
 
@@ -877,8 +912,8 @@ class array2xml {
      *
      * @return string
      */
-    public function saveXML(){
-        return $this->data->saveXML();
+    public function saveXML () {
+        return $this->data->saveXML ();
     }
 }
 
