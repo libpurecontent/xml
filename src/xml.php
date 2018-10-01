@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.7.0
+# Version 1.8.0
 class xml
 {
 	# Function to convert XML to an array
@@ -448,6 +448,7 @@ class xml
 	
 	
 	# Function to chunk files into pieces into a database; NB This does *not* clear existing records - only inserts/overwrites records
+	#!# This function shouldn't actually manage the database entry - it should return the records instead
 	public static function databaseChunking ($file, $credentials, $database, $table, $xpathRecordsRoot, $recordIdPath, $otherPaths = array (), $multiplesDelimiter = '|', $entityConversions = true, $documentToDataOrientatedXml = true, $timeLimit = 300, $filter = false)
 	{
 		# Set a larger time limit than the default
@@ -866,11 +867,11 @@ class array2xml {
     public  function __construct($array){
         if(!is_array($array)){
             throw new Exception('array2xml requires an array', 1);
-            unset($this);
+            //unset($this);
         }
         if(!count($array)){
             throw new Exception('array is empty', 2);
-            unset($this);
+            //unset($this);
         }
         
         $this->data = new DOMDocument('1.0');
