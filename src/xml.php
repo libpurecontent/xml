@@ -1,7 +1,7 @@
 <?php
 
 # XML wrapper class
-# Version 1.9.0
+# Version 1.10.0
 class xml
 {
 	# Function to convert XML to an array
@@ -568,60 +568,34 @@ class xml
 	}
 	
 	
-	# XML string formatter, based on http://forums.devnetwork.net/viewtopic.php?p=213989
+	# XML string formatter
 	public static function formatter ($xml, $boxClass = 'code')
 	{
-		# Protect inline tag combinations
-		$inlineTagCombinations = array (
-			'</a></p>',
-		);
-		$inlineTagCombinationsReplacements = array ();
-		$safeString = '~~FOO~~';
-		foreach ($inlineTagCombinations as $inlineTagCombination) {
-			$replacement = str_replace ('><', ">{$safeString}<", $inlineTagCombination);
-			$inlineTagCombinationsReplacements[$inlineTagCombination] = $replacement;
-		}
-		$xml = strtr ($xml, $inlineTagCombinationsReplacements);
+		# Trim the XML
+		$xml = trim ($xml);
 		
-		// add marker linefeeds to aid the pretty-tokeniser (adds a linefeed between all tag-end boundaries)
-		$xml = preg_replace ('/(>)\s*(<)(\/*)/', "$1\n$2$3", $xml);
+		# Indent
+		$dom = new DOMDocument ();
+		$dom->preserveWhiteSpace = false;
+		$dom->formatOutput = true;
+		$dom->loadXML ($xml);
+		$xml = $dom->saveXML ();
 		
-		# Undo protection of inline tag combinations
-		$inlineTagCombinationsReplacements = array_flip ($inlineTagCombinationsReplacements);
-		$xml = strtr ($xml, $inlineTagCombinationsReplacements);
-		
-		// now indent the tags
-		$token      = strtok ($xml, "\n");
-		$result     = ''; // holds formatted version as it is built
-		$pad        = 0; // initial indent
-		$matches    = array (); // returns from preg_matches()
-		
-		// scan each line and adjust indent based on opening/closing tags
-		while ($token !== false) {
-			
-			// test for the various tag states
-			
-			// 1. open and closing tags on same line - no change
-			if (preg_match ('/.+<\/\w[^>]*>$/', $token, $matches)) {
-				$indent = 0;
-			// 2. closing tag - outdent now
-			} elseif (preg_match ('/^<\/\w/', $token, $matches)) {
-				$pad--;
-			// 3. opening tag - don't pad this one, only subsequent tags
-			} elseif (preg_match ('/^<\w[^>]*[^\/]>.*$/', $token, $matches)) {
-				$indent = 1;
-			// 4. no indentation needed
-			} else {
-				$indent = 0;
+		# Convert leading spaces to tabs
+		$spacesPerTab = 2;	// DOMDocument preserveWhiteSpace will indent with 2 spaces
+		$lines = explode ("\n", $xml);
+		foreach ($lines as $index => $line) {
+			if (preg_match ('|^( *)<|', $line, $matches)) {
+				$spaces = strlen ($matches[0]);
+				if ($spaces % $spacesPerTab) {
+					$lines[$index]  = preg_replace ('|^  |', str_repeat ("\t", ($spaces / $spacesPerTab)), $line);
+				}
 			}
-			
-			// Pad the line with the required number of leading spaces
-			$padString = "\t";
-			// Note: Warnings "str_repeat(): Second argument has to be greater than or equal to 0" mean that the XML is not properly data-orientated
-			$result .= str_repeat ($padString, $pad) . htmlspecialchars ($token) . "\n"; // add to the cumulative result, with linefeed
-			$token   = strtok ("\n"); // get the next token
-			$pad    += $indent; // update the pad size for subsequent lines    
 		}
+		$xml = implode ("\n", $lines);
+		
+		# Convert to HTML
+		$result = htmlspecialchars ($xml);
 		
 		# Make the tags appear faded
 		$result = str_replace (array ('&lt;', '&gt;'), array ("<span>&lt;", '&gt;</span>'), $result);
