@@ -71,7 +71,6 @@ class xml
 		$array = array ($xml->getName () => $array);	// Restore top-level tag as this is lost in the conversion process
 		
 		# Substitute namespaces
-		require_once ('application.php');
 		$array = application::array_key_str_replace ($uniqueString, ':', $array);
 		
 		# Return the array
@@ -620,7 +619,6 @@ class xml
 		$schemaXml = self::xml2array ($xml, false, true, $xmlIsFile = false, false, false, false, $skipComments = true);
 		
 		# Flatten the schema
-		require_once ('directories.php');
 		$schemaFlattened = directories::flatten ($schemaXml);
 		
 		# Rearrange as a list which specifies which are containers
