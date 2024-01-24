@@ -1,7 +1,6 @@
 <?php
 
 # XML wrapper class
-# Version 1.10.0
 class xml
 {
 	# Function to convert XML to an array
