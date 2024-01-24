@@ -405,7 +405,7 @@ class xml
 	}
 	
 	
-	# From http://uk2.php.net/manual/en/ref.simplexml.php
+	# From https://www.php.net/ref.simplexml
 	public static function simplexml2array (/* Object */ $xml, $getAttributes = false, $utf8decode = false, $skipComments = false)
 	{
 	   if (is_a ($xml, 'SimpleXMLElement')) {
@@ -791,7 +791,7 @@ class xml
 
 
 
-// From: http://uk2.php.net/book.dom
+// From: https://www.php.net/book.dom
 /**
  * basic class for converting an array to xml.
  * @author Matt Wiseman (trollboy at shoggoth.net)
