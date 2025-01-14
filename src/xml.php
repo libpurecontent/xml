@@ -586,7 +586,7 @@ class xml
 			if (preg_match ('|^( *)<|', $line, $matches)) {
 				$spaces = strlen ($matches[0]);
 				if ($spaces % $spacesPerTab) {
-					$lines[$index]  = preg_replace ('|^  |', str_repeat ("\t", ($spaces / $spacesPerTab)), $line);
+					$lines[$index]  = preg_replace ('|^  |', str_repeat ("\t", floor ($spaces / $spacesPerTab)), $line);	// Floor needed to avoid "Implicit conversion from float N to int loses precision" errors
 				}
 			}
 		}
