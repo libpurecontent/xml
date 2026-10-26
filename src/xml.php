@@ -406,14 +406,12 @@ class xml
 	
 	
 	# From https://www.php.net/ref.simplexml
-	public static function simplexml2array (/* Object */ $xml, $getAttributes = false, $utf8decode = false, $skipComments = false)
+	public static function simplexml2array (/* Object */ $xml, $getAttributes = false, $utf8Decode_legacyIgnored = false, $skipComments = false)
 	{
 	   if (is_a ($xml, 'SimpleXMLElement')) {
 	       $attributes = $xml->attributes();
 	       foreach ($attributes as $k => $v) {
 	           if ($v) {
-//			   	$v = str_replace ("\xe2\x80\xa6", '&#8230;', $v);
-//			   	if ($utf8decode) {$v = utf8_decode ($v);}
 				$string = (string) $v;
 				$a[$k] = $string;
 			 }
@@ -424,13 +422,12 @@ class xml
 	   
 	   if (is_array ($xml)) {
 	       if (count ($xml) == 0) {
-//		   	   if ($utf8decode) {$x = utf8_decode ($x);}
 		       $return = (string) $x; // for CDATA
 			   return $return;
 		   }
 	       foreach ($xml as $key => $value) {
 	           if ($skipComments && $key == 'comment') {continue;}
-			   $r[$key] = self::simplexml2array ($value, $getAttributes, $utf8decode);
+			   $r[$key] = self::simplexml2array ($value, $getAttributes);
 	       }
 	       if ($getAttributes) {
 				if (isset ($a)) {
@@ -440,7 +437,6 @@ class xml
 	       return $r;
 	   }
 	   
-	   if ($utf8decode) {$xml = utf8_decode ($xml);}
 	   return (string) $xml;
 	}
 	
