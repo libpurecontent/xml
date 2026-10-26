@@ -5,7 +5,7 @@ class xml
 {
 	# Function to convert XML to an array
 	#!# Consider making the last two items default to false
-	public static function xml2array ($xmlfile, $cacheXml = false, $documentToDataOrientatedXml = true, $xmlIsFile = true, $getAttributes = false, $entityConversions = false, $utf8Decode = false, $skipComments = false)
+	public static function xml2array ($xmlfile, $cacheXml = false, $documentToDataOrientatedXml = true, $xmlIsFile = true, $getAttributes = false, $entityConversions = false, $utf8Decode_legacyIgnored = false, $skipComments = false)
 	{
 		# If there is not a cached file, pre-process the XML
 		if (!$cacheXml || ($cacheXml && !file_exists ($cacheXml))) {
@@ -50,7 +50,7 @@ class xml
 		if (!$xmlobject = simplexml_load_string ($xml, NULL, LIBXML_NOENT)) {return false;}
 		
 		# Convert the object to an array
-		if (!$xml = self::simplexml2array ($xmlobject, $getAttributes, $utf8Decode, $skipComments)) {return false;}
+		if (!$xml = self::simplexml2array ($xmlobject, $getAttributes, $utf8Decode_legacyIgnored, $skipComments)) {return false;}
 		
 		# Return the XML
 		return $xml;
